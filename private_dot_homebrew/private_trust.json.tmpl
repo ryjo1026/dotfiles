@@ -1,0 +1,18 @@
+{{/*
+  Homebrew 7 refuses to load formulae and casks from third-party taps unless they
+  are trusted, so `brew bundle` fails on a fresh machine without this file. Keep
+  these lists in sync with dot_Brewfile.tmpl -- same taps, same conditionals.
+
+  `brew trust` rewrites this file in place; anything added that way is lost on the
+  next `chezmoi apply`, so add it here instead.
+*/ -}}
+{{- $formulae := list "anomalyco/tap/opencode" "microsoft/apm/apm" -}}
+{{- $taps := list "microsoft/apm" -}}
+{{- if .aerospaceEnabled -}}
+  {{- $taps = append $taps "nikitabobko/tap" -}}
+{{- end -}}
+{{- if .sketchybarEnabled -}}
+  {{- $taps = append $taps "felixkratz/formulae" -}}
+  {{- $formulae = append $formulae "felixkratz/formulae/sketchybar" -}}
+{{- end -}}
+{{ dict "trustedformulae" (sortAlpha $formulae) "trustedtaps" (sortAlpha $taps) | toPrettyJson }}

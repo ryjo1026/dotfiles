@@ -40,6 +40,7 @@ cmux's own skills (`cmux-config`, `cmux-sidebar-builder`) tell you to edit `~/.c
 - The `auditing-brewfile` skill carries the audit and the triage procedure; its `scripts/brew-audit` lists packages installed on purpose but declared nowhere, plus the reverse drift, and exits non-zero when anything needs a decision.
 - There is no ignore list, so a candidate you decline is reported again next run.
 - The bundle runs detached (`.chezmoiscripts/run_after_brew-bundle.sh.tmpl`): `chezmoi apply` returns before it finishes, and its output — including a failure with the log — arrives in the terminal later. The stamp at `~/.cache/chezmoi/brew-bundle.sha256` is written only on success and is what gates the next run, so don't convert the script back to `run_onchange_` (chezmoi would mark it done at fork time and never retry a failure).
+- Homebrew 7 refuses to load a formula or cask from an untrusted third-party tap, so a new tap in `dot_Brewfile.tmpl` also needs an entry in `private_dot_homebrew/private_trust.json.tmpl` — same conditionals — or `brew bundle` fails on a fresh machine with "Refusing to load … from untrusted tap". Don't fix that with `brew trust`: it rewrites `~/.homebrew/trust.json`, which chezmoi owns and will revert.
 - **Never run `brew bundle cleanup --force`** to resolve the audit — it uninstalls the entire list rather than codifying it.
 
 Detailed agent docs live in `agents/`:

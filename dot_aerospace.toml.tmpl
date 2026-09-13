@@ -72,7 +72,14 @@ on-mode-changed = []
     inner.vertical =   0
     outer.left =       0
     outer.bottom =     0
+{{- if .sketchybarEnabled }}
+    # Leave room for SketchyBar (bar height in dot_config/sketchybar/executable_sketchybarrc).
+    # Without this, tiled windows fill the strip the hidden menu bar used to occupy and the
+    # bar -- which draws above windows -- would overlap them.
+    outer.top =        36
+{{- else }}
     outer.top =        0
+{{- end }}
     outer.right =      0
 
 # 'main' binding mode declaration

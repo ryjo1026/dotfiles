@@ -11,7 +11,10 @@ TEXT=0xffe0def4
 SUBTLE=0xff908caa
 GOLD=0xfff6c177
 
-sketchybar --bar position=top height=36 blur_radius=30 color=$BASE
+# topmost=window: AeroSpace tiles windows over the strip the hidden menu bar used
+# to occupy, so the bar has to draw above them or it is invisible. The matching
+# outer.top gap in .aerospace.toml keeps it from covering window content.
+sketchybar --bar position=top height=36 blur_radius=30 color=$BASE topmost=window
 
 default=(
   padding_left=5
