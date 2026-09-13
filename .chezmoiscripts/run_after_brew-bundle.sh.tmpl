@@ -38,6 +38,13 @@ echo "brew bundle: started in the background (profile={{ .profile | default "hom
   if brew bundle --file "$BREWFILE" >"$LOG" 2>&1; then
     printf '%s' "$want" >"$STAMP"
     echo "brew bundle: finished, everything installed"
+{{- if .sketchybarEnabled }}
+    # run_onchange_30-sketchybar skips (and is recorded as done) when it runs before
+    # this bundle has installed sketchybar -- the usual case on a fresh machine.
+    # Starting here registers its LaunchAgent (RunAtLoad), so it also starts at login.
+    brew services start sketchybar >/dev/null 2>&1 \
+      || echo "brew bundle: could not start sketchybar; run 'brew services start sketchybar'"
+{{- end }}
   else
     status=$?
     echo

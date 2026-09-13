@@ -8,9 +8,18 @@ config-version = 2
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = []
+{{- if .sketchybarEnabled }}
+
+# Tell SketchyBar which workspace is focused so it can highlight it.
+# https://nikitabobko.github.io/AeroSpace/goodies#show-aerospace-workspaces-in-sketchybar
+# SketchyBar itself is started by `brew services`, not after-startup-command.
+exec-on-workspace-change = ['/bin/bash', '-c',
+    'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE'
+]
+{{- end }}
 
 # Start AeroSpace at login
-start-at-login = false
+start-at-login = true
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
 enable-normalization-flatten-containers = true
@@ -73,9 +82,8 @@ on-mode-changed = []
     outer.left =       0
     outer.bottom =     0
 {{- if .sketchybarEnabled }}
-    # Leave room for SketchyBar (bar height in dot_config/sketchybar/executable_sketchybarrc).
-    # Without this, tiled windows fill the strip the hidden menu bar used to occupy and the
-    # bar -- which draws above windows -- would overlap them.
+    # Leave room for SketchyBar (bar height in dot_config/sketchybar/executable_sketchybarrc.tmpl).
+    # With the menu bar auto-hidden, tiled windows would otherwise fill that strip and cover the bar.
     outer.top =        36
 {{- else }}
     outer.top =        0

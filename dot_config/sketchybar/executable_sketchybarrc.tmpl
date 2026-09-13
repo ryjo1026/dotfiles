@@ -11,10 +11,8 @@ TEXT=0xffe0def4
 SUBTLE=0xff908caa
 GOLD=0xfff6c177
 
-# topmost=window: AeroSpace tiles windows over the strip the hidden menu bar used
-# to occupy, so the bar has to draw above them or it is invisible. The matching
-# outer.top gap in .aerospace.toml keeps it from covering window content.
-sketchybar --bar position=top height=36 blur_radius=30 color=$BASE topmost=window
+# Height must match gaps.outer.top in .aerospace.toml, which keeps tiled windows off the bar.
+sketchybar --bar position=top height=36 blur_radius=30 color=$BASE
 
 default=(
   padding_left=5
@@ -30,6 +28,27 @@ default=(
 )
 sketchybar --default "${default[@]}"
 
+{{ if .aerospaceEnabled -}}
+# --- left: AeroSpace workspaces ---------------------------------------------
+# https://nikitabobko.github.io/AeroSpace/goodies#show-aerospace-workspaces-in-sketchybar
+# AeroSpace fires this event from exec-on-workspace-change in .aerospace.toml.
+sketchybar --add event aerospace_workspace_change
+
+for sid in $(aerospace list-workspaces --all); do
+  sketchybar --add item "space.$sid" left \
+             --subscribe "space.$sid" aerospace_workspace_change \
+             --set "space.$sid" \
+             background.color=$SURFACE \
+             background.corner_radius=5 \
+             background.height=24 \
+             background.drawing=off \
+             icon.drawing=off \
+             label="$sid" \
+             click_script="aerospace workspace $sid" \
+             script="$PLUGIN_DIR/aerospace.sh $sid"
+done
+
+{{ else -}}
 # --- left: mission control spaces ------------------------------------------
 SPACE_ICONS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
 for i in "${!SPACE_ICONS[@]}"; do
@@ -48,6 +67,7 @@ for i in "${!SPACE_ICONS[@]}"; do
   )
   sketchybar --add space "space.$sid" left --set "space.$sid" "${space[@]}"
 done
+{{- end }}
 
 sketchybar --add item chevron left \
            --set chevron icon= label.drawing=off icon.color=$SUBTLE \

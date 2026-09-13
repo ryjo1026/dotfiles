@@ -12,8 +12,8 @@ command -v brew >/dev/null 2>&1 || exit 0
 
 {{ if .sketchybarEnabled -}}
 if ! command -v sketchybar >/dev/null 2>&1; then
-  # brew bundle runs detached and may not have finished yet; the next apply picks this up.
-  echo "sketchybar: not installed yet, skipping service start (rerun 'chezmoi apply' after brew bundle finishes)"
+  # brew bundle runs detached and may not have finished yet; it starts the service on success.
+  echo "sketchybar: not installed yet, the background brew bundle will start the service"
   exit 0
 fi
 
