@@ -36,16 +36,20 @@ defaults write com.apple.spaces spans-displays -bool true
 
 # Menu bar: SketchyBar replaces it, so auto-hide the system one when enabled and
 # restore the normal always-visible menu bar when disabled.
-# macOS 26 (Tahoe) reads com.apple.controlcenter AutoHideMenuBarOption, where 0 is
-# "Always" and an absent key is the default "Never". _HIHideMenuBar is the pre-Tahoe
-# key; Tahoe ignores it until the next login, so it is kept only for older macOS.
+# macOS 26+ reads com.apple.controlcenter AutoHideMenuBarOption, indexed like the
+# System Settings dropdown: 0 "Always" ... 3 "Never" (both read back after setting
+# them there). _HIHideMenuBar and AppleMenuBarVisibleInFullscreen are the older keys,
+# which newer macOS ignores until the next login; kept so older macOS matches.
 {{- if .sketchybarEnabled }}
-echo "SketchyBar enabled: auto-hiding the macOS menu bar..."
+echo "SketchyBar enabled: menu bar auto-hide -> Always"
 defaults write com.apple.controlcenter AutoHideMenuBarOption -int 0
 defaults write NSGlobalDomain _HIHideMenuBar -bool true
+defaults write NSGlobalDomain AppleMenuBarVisibleInFullscreen -bool false
 {{- else }}
-defaults delete com.apple.controlcenter AutoHideMenuBarOption 2>/dev/null || true
+echo "SketchyBar disabled: menu bar auto-hide -> Never"
+defaults write com.apple.controlcenter AutoHideMenuBarOption -int 3
 defaults write NSGlobalDomain _HIHideMenuBar -bool false
+defaults write NSGlobalDomain AppleMenuBarVisibleInFullscreen -bool true
 {{- end }}
 
 # Attempt to uto-apply changes, some may require a logout
