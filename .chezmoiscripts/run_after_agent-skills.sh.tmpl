@@ -9,10 +9,7 @@
 # installs) > sources in SOURCE_ROOTS order.
 # Never touches ~/.agents/.skill-lock.json — owned by the `npx skills` CLI,
 # which wipes lockfile versions it doesn't recognize.
-# Re-run triggers:
-#   gating: {{ include ".chezmoiignore" | sha256sum }}
-#   sources: {{ include ".chezmoiexternal.toml.tmpl" | sha256sum }}
-#   repo skills: {{ range (glob (joinPath .chezmoi.sourceDir "skills" "*" "SKILL.md")) }}{{ base (dir .) }} {{ end }}
+# run_after_, not run_onchange_: skills move between source repos on pull, which no rendered-template hash can see.
 set -euo pipefail
 
 MERGED="$HOME/.agents/skills"

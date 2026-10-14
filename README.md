@@ -119,7 +119,7 @@ These run automatically during `chezmoi apply`:
 | `run_once_10-ssh-key.sh` | Generates `~/.ssh/id_ed25519` if missing, adds it to the agent, prints the public key. Once per machine. |
 | `run_onchange_10-macos-defaults.sh` | Applies the macOS defaults above. macOS only. |
 | `run_onchange_brew-bundle.sh` | Runs `brew bundle` against `~/.Brewfile` when the Brewfile changes. macOS only. |
-| `run_onchange_after_agent-skills.sh` | Merges skill sources into `~/.agents/skills` and fans them out to agents that need it. |
+| `run_after_agent-skills.sh` | Merges skill sources into `~/.agents/skills` and fans them out to agents that need it. |
 
 ## Agent skills
 
@@ -130,7 +130,7 @@ and Amp read natively.
 
 **This repo carries no skill content, only the routing.**
 `.chezmoiexternal.toml.tmpl` clones each source repo into `~/.agents/sources/<name>`, and
-`run_onchange_after_agent-skills.sh` merges them into `~/.agents/skills` as symlinks, then
+`run_after_agent-skills.sh` merges them into `~/.agents/skills` as symlinks, then
 fans that directory out to agents that don't read it natively (currently Claude Code).
 
 | Layer | Source | Machines |

@@ -1,6 +1,6 @@
 # Skill routing
 
-Skills follow the [Agent Skills](https://agentskills.io) format (`<name>/SKILL.md`, lowercase-hyphen name matching the dir). Everything merges into `~/.agents/skills/`, which most agents (Codex, Cursor, Gemini CLI, OpenCode, Amp) read natively; `run_onchange_after_agent-skills.sh` fans the merged dir into agents that don't (Claude Code) and prunes dangling links.
+Skills follow the [Agent Skills](https://agentskills.io) format (`<name>/SKILL.md`, lowercase-hyphen name matching the dir). Everything merges into `~/.agents/skills/`, which most agents (Codex, Cursor, Gemini CLI, OpenCode, Amp) read natively; `run_after_agent-skills.sh` fans the merged dir into agents that don't (Claude Code) and prunes dangling links.
 
 ## Creating a skill: pick the layer by audience first
 
@@ -24,8 +24,8 @@ The test is the *subject*, not the audience. A generally useful skill that happe
 
 - `skills/**` is in `.chezmoiignore`, so the dir never deploys to `$HOME`.
 - Bundled resources follow the [Agent Skills](https://agentskills.io) layout — `scripts/` for executables, `references/` for docs, `assets/` for templates. A repo-local skill's script is a **plain file, never a `*.tmpl`**: `skills/` is not deployed, so nothing renders it. Locate the repo from the script's own path (`cd -P "$(dirname "${BASH_SOURCE[0]}")"` resolves the `~/.agents/skills` symlink) rather than hard-coding one.
-- `run_onchange_after_agent-skills.sh` links these **straight out of the chezmoi source dir** and lists them first in `SOURCE_ROOTS`. Two consequences: editing a repo-local skill is **live immediately, with no `chezmoi apply`**, and no shared source can shadow one.
-- Adding or removing a skill dir changes the script's re-run trigger, so the link appears on the next apply.
+- `run_after_agent-skills.sh` links these **straight out of the chezmoi source dir** and lists them first in `SOURCE_ROOTS`. Two consequences: editing a repo-local skill is **live immediately, with no `chezmoi apply`**, and no shared source can shadow one.
+- The script runs on every apply, so adding, removing, or moving a skill between sources relinks on the next apply.
 - These skills ship with the repo, so a fresh clone gets them before any source repo has been cloned. Keep them free of anything private — this repo is public.
 
 ## Third-party skills: dot_apm/apm.yml
@@ -41,7 +41,7 @@ Skills I did not write are declared in `dot_apm/apm.yml` and installed by [APM](
 
 ## Mechanics
 
-- External sources are cloned to `~/.agents/sources/<name>` via `.chezmoiexternal.toml.tmpl`; adding a source also requires adding its path to `SOURCE_ROOTS` in `.chezmoiscripts/run_onchange_after_agent-skills.sh.tmpl` (array order = collision precedence, first wins).
+- External sources are cloned to `~/.agents/sources/<name>` via `.chezmoiexternal.toml.tmpl`; adding a source also requires adding its path to `SOURCE_ROOTS` in `.chezmoiscripts/run_after_agent-skills.sh.tmpl` (array order = collision precedence, first wins).
 - Real dirs in `~/.agents/skills` beat source symlinks on name collision.
 - Per-machine gating: profile conditionals in `.chezmoiexternal.toml.tmpl`, OS gating in `.chezmoiignore`. Personal-account repos resolve via the `personal.github.com` SSH alias on work machines and plain `github.com` elsewhere.
 - Never touch `~/.agents/.skill-lock.json` — owned by the `npx skills` CLI, which wipes formats it doesn't recognize.
