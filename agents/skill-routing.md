@@ -10,11 +10,13 @@ Skills are laid out as `<name>/SKILL.md`, and live in one of five places:
 | --- | --- | --- |
 | **This repo's own mechanics** | `skills/<name>/` **here** | dotfiles/chezmoi workflows only; highest precedence |
 | Public (anyone) | [`ryjo1026/skills`](https://github.com/ryjo1026/skills) | all machines; nothing work-related or private |
-| Private (only Ryan) | [`ryjo1026/skills-private`](https://github.com/ryjo1026/skills-private) | personal-hosted, all machines |
+| Private (only Ryan) | `ryjo1026/skills-private` on personal machines, `ryanjohnston-abridge/skills-private` on work machines | cloned to `~/.agents/sources/private`; work-only skills go in the work one |
 | Team | `abridgeai/ryan-skills` | work machines only |
 | Experiment / trial | real dir in `~/.agents/skills/<name>/` | unmanaged; promote to a repo if it sticks |
 
-If the layer is ambiguous, ask — moving later is cheap but a work detail committed to a public repo is not undoable.
+Default to **private** unless Ryan names another layer. Suggest team, once and before writing, when the skill would help other engineers — shared tooling, team conventions, internal services. Never default to public: moving later is cheap, but a work detail committed to a public repo is not undoable.
+
+Commit and push private-repo skills to `main` without asking — new skills and edits alike. Every other layer follows the normal commit and push gates.
 
 ### Repo-local skills: `skills/` in this repo
 
