@@ -10,6 +10,10 @@ docs
 .aerospace.toml
 {{- end }}
 
+{{- if ne .profile "work" }}
+.claude/statusline-command.sh
+{{- end }}
+
 {{- if ne .chezmoi.os "darwin" }}
 # Skill sources pull on Macs by default. Opt one into the server with:
 #   !.agents/sources/<name>
