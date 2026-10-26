@@ -1,16 +1,16 @@
-zsh-users/zsh-syntax-highlighting                           # zsh command coloring
-zsh-users/zsh-autosuggestions                               # Show autocompletion suggestion from history
-zsh-users/zsh-completions                                   # Add additonal completions
-marlonrichert/zsh-edit branch:main                          # Add a bunch of shortcuts (esp. show kill-ring when pasting)
+zsh-users/zsh-syntax-highlighting kind:defer                            # zsh command coloring
+zsh-users/zsh-autosuggestions kind:defer                                # Show autocompletion suggestion from history
+zsh-users/zsh-completions                                               # Add additonal completions
+marlonrichert/zsh-edit branch:main                                      # Add a bunch of shortcuts (esp. show kill-ring when pasting)
 
-romkatv/powerlevel10k                                       # Prompt
+romkatv/powerlevel10k                                                   # Prompt
 
-rupa/z                                                      # Allows for cd shortcutting based on frequency
-paulirish/git-open                                          # Open github repos in the webrowser
-robbyrussell/oh-my-zsh path:plugins/colored-man-pages       # Color man pages
-robbyrussell/oh-my-zsh path:plugins/git                     # Useful git aliases
-robbyrussell/oh-my-zsh path:plugins/git-auto-fetch          # Background `git fetch` (throttled by GIT_AUTO_FETCH_INTERVAL)
+rupa/z kind:defer                                                       # Allows for cd shortcutting based on frequency
+paulirish/git-open kind:defer                                           # Open github repos in the webrowser
+robbyrussell/oh-my-zsh path:plugins/colored-man-pages kind:defer        # Color man pages
+robbyrussell/oh-my-zsh path:plugins/git kind:defer                      # Useful git aliases
+robbyrussell/oh-my-zsh path:plugins/git-auto-fetch kind:defer           # Background `git fetch` (throttled by GIT_AUTO_FETCH_INTERVAL)
 
 {{- if eq .chezmoi.os "darwin" }}
-robbyrussell/oh-my-zsh path:plugins/brew
+robbyrussell/oh-my-zsh path:plugins/brew kind:defer
 {{- end }}

@@ -127,3 +127,4 @@ done
 
 printf '%s\n' "$out"
 [ -n "$ctx_line" ] && printf '%s\n' "$ctx_line"
+exit 0
