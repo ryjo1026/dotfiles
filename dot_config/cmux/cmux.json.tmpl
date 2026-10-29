@@ -21,8 +21,10 @@
       "type": "command",
       "title": "Lazygit",
       // cmux has no headless action target, so this runs in a transient focused tab; every path must exec so the tab closes immediately.
+      // The transient tab inherits the workspace cwd, not the worktree the invoking tab sits in, so the repo is resolved from that tab and cd'd into before splitting.
       // The toggle matches the rename-tab title, lowercase "lazygit"; this action's own tab ("Lazygit") must stay capitalized to never self-match.
-      "command": "s=$(cmux list-panels --json | jq -r '[.surfaces[] | select(.title==\"lazygit\") | .ref] | first // empty'); [ -n \"$s\" ] && exec cmux focus-panel --panel \"$s\"; r=$(cmux new-split right --focus true --json | jq -r .surface_ref); cmux rename-tab --surface \"$r\" lazygit; exec cmux send --surface \"$r\" 'exec lazygit\\r'",
+      // Matching also requires the split's cwd, so a second worktree of the same repo gets its own lazygit instead of focusing the first.
+      "command": "d=$(cmux list-panels --json | jq -r '(.surfaces[] | select(.focused) | .pane_ref) as $p | [.surfaces[] | select((.focused | not) and .pane_ref == $p) | select((.resume_binding.cwd // .requested_working_directory) != null)] | if length == 0 then empty else (max_by(.resume_binding.updated_at // 0) | .resume_binding.cwd // .requested_working_directory) end'); [ -n \"$d\" ] && cd -- \"$d\" 2>/dev/null; cd -- \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\" || exit; d=$(pwd -P); s=$(cmux list-panels --json | jq -r --arg d \"$d\" '[.surfaces[] | select(.title == \"lazygit\" and .requested_working_directory == $d) | .ref] | first // empty'); [ -n \"$s\" ] && exec cmux focus-panel --panel \"$s\"; r=$(cmux new-split right --focus true --json | jq -r .surface_ref); cmux rename-tab --surface \"$r\" lazygit; exec cmux send --surface \"$r\" 'exec lazygit\\r'",
       "target": "newTabInCurrentPane",
       "shortcut": ["ctrl+b", "g"]
     },
@@ -36,7 +38,42 @@
       "command": "v=$(cmux list-panels --json | jq -r '(.surfaces[] | select(.focused) | .pane_ref) as $p | [.surfaces[] | select((.focused | not) and .resume_binding.kind == \"claude\")] | (map(select(.pane_ref == $p))) as $near | (if ($near | length) > 0 then $near else . end) | if length == 0 then empty else (max_by(.resume_binding.updated_at // 0) | .resume_binding.checkpoint_id + \" \" + (.resume_binding.permission_mode // \"default\") + \" \" + (.resume_binding.cwd // \"\")) end'); read -r id mode cwd <<<\"$v\"; [ -n \"$id\" ] || exit; [ -n \"$cwd\" ] && cd -- \"$cwd\" 2>/dev/null; exec claude --resume \"$id\" --fork-session --permission-mode \"$mode\"",
       "target": "newTabInCurrentPane",
       "shortcut": ["ctrl+b", "shift+f"]
-    }
+    }{{ if eq .profile "work" }},
+    "clinician-web": {
+      "title": "clinician-web",
+      "type": "workspace",
+      "workspace": {
+        "cwd": "~/development/clinician-web",
+        "layout": {
+          "children": [
+            {
+              "pane": {
+                "surfaces": [
+                  {
+                    "command": "{{ .chezmoi.homeDir }}/.local/bin/claude",
+                    "focus": true,
+                    "type": "terminal"
+                  }
+                ]
+              }
+            },
+            {
+              "pane": {
+                "surfaces": [
+                  {
+                    "command": "lazygit",
+                    "type": "terminal"
+                  }
+                ]
+              }
+            }
+          ],
+          "direction": "horizontal",
+          "split": 0.5
+        },
+        "name": "clinician-web"
+      }
+    }{{ end }}
   },
   "shortcuts": {
     "bindings": {
@@ -56,7 +93,7 @@
       "focusDown": ["ctrl+b", "k"],
       "toggleSplitZoom": ["ctrl+b", "z"],
 
-      "renameWorkspace": ["ctrl+b", "shift+4"],
+      "renameWorkspace": "cmd+r",
       "goToWorkspace": ["ctrl+b", "s"],
       "prevSidebarTab": ["ctrl+b", "shift+9"],
       "nextSidebarTab": ["ctrl+b", "shift+0"],
