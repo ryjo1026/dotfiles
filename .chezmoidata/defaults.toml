@@ -1,5 +1,4 @@
 email = "your_email@example.com"
-sshKeyTitle = "default"
 profile = "default"
 aerospaceEnabled = false
 gitSigningKey = "~/.ssh/id_ed25519.pub"

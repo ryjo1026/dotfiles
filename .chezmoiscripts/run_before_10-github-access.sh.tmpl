@@ -1,0 +1,70 @@
+{{- if ne .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+exit 0
+{{- else -}}
+#!/usr/bin/env bash
+# Must finish before the update phase: the SSH-URL externals under ~/.agents
+# are cloned before ~/.ssh/config is written, alphabetically.
+set -euo pipefail
+
+AGENT_SOCK="$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+# identity:1Password item title; the agent labels each key with its item's title.
+{{- if eq .profile "work" }}
+IDENTITIES=("work:GitHub-Abridge" "personal:GitHub")
+ACCOUNTS="abridge.1password.com and my.1password.com"
+{{- else }}
+IDENTITIES=("personal:GitHub")
+ACCOUNTS="my.1password.com"
+{{- end }}
+
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+
+pending=()
+for pair in "${IDENTITIES[@]}"; do
+  id=${pair%%:*}
+  [[ -f "$HOME/.ssh/id_ed25519_$id" || -f "$HOME/.ssh/1password_github_$id.pub" ]] || pending+=("$pair")
+done
+
+while ((${#pending[@]})); do
+  agent_keys=$(SSH_AUTH_SOCK="$AGENT_SOCK" ssh-add -L 2>/dev/null || true)
+  still=()
+  for pair in "${pending[@]}"; do
+    id=${pair%%:*} title=${pair#*:} found=""
+    while read -r type body comment; do
+      [[ "$comment" == "$title" ]] && found="$type $body" && break
+    done <<<"$agent_keys"
+    if [[ -n "$found" ]]; then
+      echo "$found $title" > "$HOME/.ssh/1password_github_$id.pub"
+    else
+      still+=("$pair")
+    fi
+  done
+  pending=("${still[@]+"${still[@]}"}")
+  ((${#pending[@]})) || break
+
+  open -a 1Password
+  echo "github-access: waiting for 1Password SSH keys: ${pending[*]#*:}"
+  echo "  Sign in to $ACCOUNTS, then turn on Settings > Developer > Use the SSH agent."
+  echo "  A ~/.config/1Password/ssh/agent.toml, if present, must list each item's vault."
+  read -rp "Press Enter when done... " </dev/tty
+done
+
+if [[ ! -e "$HOME/.ssh/config" ]]; then
+  umask 077
+  cat > "$HOME/.ssh/config" <<'SSH_CONFIG'
+{{ template "ssh-config" . }}
+SSH_CONFIG
+fi
+
+# Host keys come from GitHub's API over TLS, never from trust-on-first-use.
+if ! ssh-keygen -F github.com >/dev/null 2>&1; then
+  curl -fsSL https://api.github.com/meta \
+    | grep -oE '"(ssh-ed25519|ecdsa-sha2-nistp256|ssh-rsa) [A-Za-z0-9+/=]+"' \
+    | tr -d '"' | sed 's/^/github.com /' >> "$HOME/.ssh/known_hosts"
+fi
+
+source_dir={{ .chezmoi.sourceDir | quote }}
+if [[ "$(git -C "$source_dir" remote get-url origin)" == https://* ]]; then
+  git -C "$source_dir" remote set-url origin "git@{{ eq .profile "work" | ternary "personal.github.com" "github.com" }}:ryjo1026/dotfiles.git"
+fi
+{{- end }}

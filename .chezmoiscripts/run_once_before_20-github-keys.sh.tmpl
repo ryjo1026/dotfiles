@@ -1,0 +1,76 @@
+{{- if ne .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+exit 0
+{{- else -}}
+#!/usr/bin/env bash
+# Optional: without this, git keeps using the 1Password keys from run_before_10.
+set -euo pipefail
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# write:, not admin:, so the token can add keys but never delete them.
+GH_SCOPES="write:public_key,write:ssh_signing_key"
+TITLE={{ .chezmoi.hostname | quote }}
+{{- if eq .profile "work" }}
+IDENTITIES=("work:ryanjohnston-abridge" "personal:ryjo1026")
+{{- else }}
+IDENTITIES=("personal:ryjo1026")
+{{- end }}
+
+ensure_gh_account() {
+  local user=$1
+  until [[ "$(gh auth status --hostname github.com 2>&1 || true)" == *"account $user ("* ]]; do
+    echo "Sign in to GitHub as $user in the browser that opens."
+    gh auth login --hostname github.com --web --git-protocol ssh --skip-ssh-key --scopes "$GH_SCOPES" </dev/tty || true
+  done
+  gh auth switch --hostname github.com --user "$user"
+  local scopes
+  scopes=$(gh api -i user 2>/dev/null | grep -i '^x-oauth-scopes:' || true)
+  if [[ "$scopes" != *public_key* || "$scopes" != *ssh_signing_key* ]]; then
+    gh auth refresh --hostname github.com --scopes "$GH_SCOPES" </dev/tty
+  fi
+}
+
+register_key() {
+  local pub=$1 body
+  body=$(awk '{print $2}' "$pub")
+  [[ "$(gh api --paginate user/keys --jq '.[].key')" == *"$body"* ]] \
+    || gh ssh-key add "$pub" --title "$TITLE" --type authentication
+  [[ "$(gh api --paginate user/ssh_signing_keys --jq '.[].key')" == *"$body"* ]] \
+    || gh ssh-key add "$pub" --title "$TITLE" --type signing
+}
+
+# ~/.ssh/config switches to a machine key once its file exists, so a new key
+# keeps a .new suffix until it is registered (and SSO-authorized for work).
+key_path() {
+  local key="$HOME/.ssh/id_ed25519_$1"
+  [[ -f "$key" ]] && echo "$key" || echo "$key.new"
+}
+
+for pair in "${IDENTITIES[@]}"; do
+  id=${pair%%:*} user=${pair#*:}
+  key=$(key_path "$id")
+  [[ -f "$key" ]] || ssh-keygen -q -t ed25519 -C "$TITLE-$id" -f "$key" -N ""
+  echo "github-keys: checking the $id key on $user"
+  ensure_gh_account "$user"
+  register_key "$key.pub"
+done
+
+{{ if eq .profile "work" -}}
+# Probe with the machine key alone; ~/.ssh/config may still route to the 1Password key.
+until GIT_SSH_COMMAND="ssh -i $(key_path work) -o IdentitiesOnly=yes -o IdentityAgent=none" \
+  git ls-remote git@github.com:abridgeai/ryan-skills.git HEAD >/dev/null 2>&1; do
+  echo "Authorize the '$TITLE' key for abridgeai: https://github.com/settings/keys -> Configure SSO -> Authorize"
+  read -rp "Press Enter when done... " </dev/tty
+done
+gh auth switch --hostname github.com --user ryanjohnston-abridge
+{{- end }}
+
+for pair in "${IDENTITIES[@]}"; do
+  key="$HOME/.ssh/id_ed25519_${pair%%:*}"
+  if [[ -f "$key.new" ]]; then
+    mv "$key.new.pub" "$key.pub"
+    mv "$key.new" "$key"
+  fi
+done
+
+{{- end }}

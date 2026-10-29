@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+{{ if eq .chezmoi.os "darwin" }}exit 0  # bootstrap.sh owns keys on macOS{{ end }}
 
 # Generate an SSH key
 
@@ -6,7 +7,6 @@ set -euo pipefail
 
 KEY="$HOME/.ssh/id_ed25519"
 EMAIL="{{ .email | default "your_email@example.com" }}"
-TITLE="{{ .sshKeyTitle | default "personal-laptop" }}"
 
 mkdir -p "$HOME/.ssh"
 chmod 700 "$HOME/.ssh"

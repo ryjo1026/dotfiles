@@ -41,8 +41,11 @@ pane navigation.
 and fanned out to each agent. No skill content lives here, only the routing. See
 [Agent skills](#agent-skills).
 
-**An SSH key** — generated on first apply if `~/.ssh/id_ed25519` is missing, and printed so
-you can paste it into GitHub.
+**GitHub access** — on a Mac, git reaches GitHub through the 1Password SSH agent from the
+first apply, then moves to per-machine keys registered for authentication and commit
+signing. The work profile gets the work and personal accounts; the personal profile gets
+personal only. `~/.ssh/config` is managed; hosts this repo doesn't own go in
+`~/.ssh/config.local`.
 
 ## Install
 
@@ -54,6 +57,19 @@ This clones the repo to `~/.local/share/chezmoi`, prompts for the values below, 
 to `~/.config/chezmoi/chezmoi.toml`, renders everything into `$HOME`, and runs the
 bootstrap scripts.
 
+On a fresh Mac the first apply stops a few times for you:
+
+1. Homebrew's installer asks for your password.
+2. 1Password opens. Sign in to the accounts the terminal names, turn on
+   Settings › Developer › Use the SSH agent, then press Enter. Git now works.
+3. A browser opens to sign `gh` in to each GitHub account the profile needs, to register
+   this machine's keys. Sign in as the account the terminal names.
+4. Work profile only: authorize the new work key for the abridgeai org's SSO at
+   <https://github.com/settings/keys>, then press Enter.
+
+`~/.ssh/config` moves from the 1Password keys to the machine keys on the next
+`chezmoi apply`.
+
 ## Configuration
 
 `.chezmoi.toml.tmpl` prompts for these on first init. They live in
@@ -62,10 +78,9 @@ bootstrap scripts.
 | Value | Purpose |
 | --- | --- |
 | `profile` | `work` or `personal` — gates Brewfile entries and the team skill source |
-| `email` | git identity and the comment on the generated SSH key |
-| `sshKeyTitle` | label for the generated SSH key |
+| `email` | git identity and the comment on the Linux SSH key |
 | `aerospaceEnabled` | install AeroSpace and apply the WM-friendly macOS defaults |
-| `gitSigningKey` | public key used to sign commits |
+| `gitSigningKey` | public key used to sign commits; defaults to the profile's GitHub key |
 
 Fallbacks for anything unset are in `.chezmoidata/defaults.toml`.
 
@@ -84,7 +99,8 @@ Fallbacks for anything unset are in `.chezmoidata/defaults.toml`.
 | `.chezmoi.toml.tmpl` | config prompts run on `chezmoi init` |
 | `.chezmoidata/defaults.toml` | default template values |
 | `.chezmoiexternal.toml.tmpl` | skill source repos, cloned per machine profile |
-| `.chezmoiscripts/` | bootstrap scripts (SSH key, macOS defaults, brew bundle, skill routing) |
+| `private_dot_ssh/`, `.chezmoitemplates/ssh-config` | SSH config (macOS), shared with the GitHub access script |
+| `.chezmoiscripts/` | bootstrap scripts (Homebrew, GitHub SSH keys, macOS defaults, brew bundle, skill routing) |
 | `.chezmoiignore` | per-OS and per-profile gating; also keeps repo-only files out of `$HOME` |
 | `.githooks/pre-push` | renders every template against each target OS before push |
 | `AGENTS.md`, `agents/` | context for AI agents working on this repo (`CLAUDE.md` symlinks to `AGENTS.md`) |
@@ -116,7 +132,10 @@ These run automatically during `chezmoi apply`:
 
 | Script | What it does |
 | --- | --- |
-| `run_once_10-ssh-key.sh` | Generates `~/.ssh/id_ed25519` if missing, adds it to the agent, prints the public key. Once per machine. |
+| `run_before_00-homebrew.sh` | Installs Homebrew, the 1Password app, and `gh` if missing. macOS only. |
+| `run_before_10-github-access.sh` | Until a machine key exists, waits for the 1Password SSH agent to serve the profile's GitHub keys and pins `~/.ssh/config` to them. Seeds `~/.ssh/config`, adds GitHub's host keys, and points the repo's remote at SSH. Runs before externals clone. macOS only. |
+| `run_once_before_20-github-keys.sh` | Optional. Generates `~/.ssh/id_ed25519_{work,personal}`, registers each on its GitHub account for authentication and signing, and waits for SSO authorization. Re-runs after a failure. macOS only. |
+| `run_once_10-ssh-key.sh` | Generates `~/.ssh/id_ed25519` if missing, adds it to the agent, prints the public key. Once per machine. Linux only. |
 | `run_onchange_10-macos-defaults.sh` | Applies the macOS defaults above. macOS only. |
 | `run_onchange_brew-bundle.sh` | Runs `brew bundle` against `~/.Brewfile` when the Brewfile changes. macOS only. |
 | `run_after_agent-skills.sh` | Merges skill sources into `~/.agents/skills` and fans them out to agents that need it. |

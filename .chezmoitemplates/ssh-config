@@ -1,0 +1,22 @@
+# Hosts this repo doesn't manage go in ~/.ssh/config.local.
+Include ~/.ssh/config.local
+{{- $ids := eq .profile "work" | ternary (list "work" "personal") (list "personal") }}
+{{- range $ids }}
+{{- $host := and (eq $.profile "work") (eq . "personal") | ternary "personal.github.com" "github.com" }}
+{{- $key := printf "id_ed25519_%s" . }}
+{{- if not (stat (joinPath $.chezmoi.homeDir ".ssh" $key)) }}
+{{- /* No machine key yet: the .pub selects the matching 1Password agent key. */}}
+{{- $key = printf "1password_github_%s.pub" . }}
+{{- end }}
+
+Host {{ $host }}
+    Hostname github.com
+    User git
+    IdentityFile ~/.ssh/{{ $key }}
+    IdentitiesOnly yes
+{{- end }}
+{{- if eq .chezmoi.os "darwin" }}
+
+Host *
+    IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+{{- end }}
