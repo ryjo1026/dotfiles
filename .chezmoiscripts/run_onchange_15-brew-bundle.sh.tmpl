@@ -6,6 +6,9 @@ exit 0
 # Brewfile hash: {{ include "dot_Brewfile.tmpl" | sha256sum }}
 set -euo pipefail
 
+# A fresh Homebrew install isn't on the PATH chezmoi inherits yet.
+if [[ -x /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
+
 if ! command -v brew >/dev/null 2>&1; then
   echo "Homebrew not installed; skipping brew bundle"
   exit 0
