@@ -1,9 +1,9 @@
 # No more Python 2
 # alias python='python3'
 {{- if eq .chezmoi.arch "arm64" }}
-export PATH=/opt/homebrew/bin:~/.local/bin:$PATH
+export PATH=/opt/homebrew/bin:~/.local/bin:~/bin:$PATH
 {{- else }}
-export PATH=/usr/local/bin:~/.local/bin:$PATH
+export PATH=/usr/local/bin:~/.local/bin:~/bin:$PATH
 {{- end }}
 
 # fnm is initialized in dot_zsh/fnm.zsh.tmpl (--use-on-cd auto-reads .nvmrc files).
