@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code status line: model + cwd + git branch (dirty marker), then a context-remaining bar on its own line.
+# Claude Code status line: model + launch dir + git branch/status + this session's PRs, then a context-remaining bar on its own line.
 # Reads status line JSON from stdin. Degrades gracefully: no jq -> regex fallback, no git repo -> omit branch, no context field -> omit ctx.
 
 input=$(cat)
@@ -32,15 +32,28 @@ json_num() { printf '%s' "$input" | grep -o "\"$1\"[[:space:]]*:[[:space:]]*[0-9
 if command -v jq >/dev/null 2>&1; then
   model_name=$(printf '%s' "$input" | jq -r '.model.display_name // empty')
   cwd=$(printf '%s' "$input" | jq -r '.workspace.project_dir // .workspace.current_dir // .cwd // empty')
+  current_dir=$(printf '%s' "$input" | jq -r '.workspace.current_dir // .cwd // empty')
   ctx_remaining=$(printf '%s' "$input" | jq -r '.context_window.remaining_percentage // empty')
+  session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
 else
   model_name=$(json_str display_name)
   cwd=$(json_str project_dir)
-  [ -z "$cwd" ] && cwd=$(json_str current_dir)
+  current_dir=$(json_str current_dir)
+  [ -z "$cwd" ] && cwd=$current_dir
   ctx_remaining=$(json_num remaining_percentage)
+  session_id=$(json_str session_id)
 fi
 
 [ -z "$cwd" ] && cwd="$PWD"
+[ -z "$current_dir" ] && current_dir=$cwd
+
+# Written by hooks/statusline-track.sh: the checkout this session last ran git in, and the PRs it opened.
+state="$HOME/.claude/statusline-state"
+git_dir=$current_dir
+if [ -n "$session_id" ] && [ -r "$state/$session_id.repo" ]; then
+  tracked=$(head -n1 "$state/$session_id.repo")
+  [ -d "$tracked" ] && git_dir=$tracked
+fi
 
 # Shorten "Claude Opus 4.5" -> "opus-4.5".
 short_model=$(printf '%s' "$model_name" | sed -E 's/^Claude[[:space:]]+//I' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
@@ -65,7 +78,7 @@ fi
 segments=("${C_MODEL}${short_model}${C_RESET}" "${C_DIR}${dir_display}${C_RESET}")
 
 # Git branch + p10k-style status (⇣behind ⇡ahead +staged !unstaged ?untracked); omit outside a repo. Skip optional locks (read-only, avoid lock contention).
-if status_v2=$(git -C "$cwd" --no-optional-locks status --porcelain=v2 --branch 2>/dev/null); then
+if status_v2=$(git -C "$git_dir" --no-optional-locks status --porcelain=v2 --branch 2>/dev/null); then
   branch="" ahead=0 behind=0 staged=0 unstaged=0 untracked=0
   while IFS= read -r line; do
     case "$line" in
@@ -90,6 +103,19 @@ if status_v2=$(git -C "$cwd" --no-optional-locks status --porcelain=v2 --branch 
     [ "$staged" -gt 0 ] && git_seg+=" ${C_FOAM}+${staged}"
     [ "$unstaged" -gt 0 ] && git_seg+=" ${C_GOLD}!${unstaged}"
     [ "$untracked" -gt 0 ] && git_seg+=" ${C_IRIS}?${untracked}"
+
+    pr_urls=()
+    if [ -n "$session_id" ] && [ -r "$state/$session_id.prs" ]; then
+      while IFS= read -r url; do [ -n "$url" ] && pr_urls+=("$url"); done <"$state/$session_id.prs"
+    fi
+    if [ "${#pr_urls[@]}" -ge 5 ]; then
+      git_seg+="${C_SEP} ${GLYPH_SUBSEP} ${C_IRIS}"$'\033]8;;'"${pr_urls[0]}"$'\a'"${#pr_urls[@]} PRs"$'\033]8;;\a'
+    elif [ "${#pr_urls[@]}" -gt 0 ]; then
+      git_seg+="${C_SEP} ${GLYPH_SUBSEP}${C_IRIS}"
+      for url in "${pr_urls[@]}"; do
+        git_seg+=" "$'\033]8;;'"${url}"$'\a'"#${url##*/}"$'\033]8;;\a'
+      done
+    fi
     segments+=("${git_seg}${C_RESET}")
   fi
 fi
@@ -113,6 +139,21 @@ if [ -n "$ctx_remaining" ] && [ "$ctx_remaining" != "null" ]; then
     if [ "$i" -lt "$filled" ]; then fill+="━"; else track+="━"; fi
   done
   ctx_line="${c_bar}${fill}${C_HL_MED}${track} ${c_bar}${ctx_int}%${C_SUBTLE} context left${C_RESET}"
+  ctx_width=$((bar_width + ${#ctx_int} + 15))
+fi
+
+# Peer-messaging name (what SendMessage addresses) lives only in Claude Code's session registry, not the status line payload.
+peer_name=""
+if [ -n "$session_id" ] && command -v jq >/dev/null 2>&1; then
+  reg=$(grep -lF "$session_id" "$HOME"/.claude/sessions/*.json 2>/dev/null | head -n1)
+  [ -n "$reg" ] && peer_name=$(jq -r '.name // empty' "$reg" 2>/dev/null)
+fi
+[ -z "$peer_name" ] && [ -n "$session_id" ] && peer_name=${session_id:0:8}
+if [ -n "$peer_name" ]; then
+  # Right margin keeps the line clear of Claude Code's row padding; overshooting COLUMNS wraps the whole line.
+  pad=$(( ${COLUMNS:-0} - ${ctx_width:-0} - ${#peer_name} - 4 ))
+  [ "$pad" -lt 2 ] && pad=2
+  ctx_line+="$(printf '%*s' "$pad" '')${C_MUTED}${peer_name}${C_RESET}"
 fi
 
 sep="${C_SEP} ${GLYPH_SUBSEP} ${C_RESET}"

@@ -12,6 +12,7 @@ docs
 
 {{- if ne .profile "work" }}
 .claude/statusline-command.sh
+.claude/hooks/statusline-track.sh
 {{- end }}
 
 {{- if ne .chezmoi.os "darwin" }}
