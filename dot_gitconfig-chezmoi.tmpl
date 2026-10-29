@@ -1,0 +1,8 @@
+[core]
+	hooksPath = .githooks
+{{- if eq .profile "work" }}
+# This repo belongs to ryjo1026, so commit and sign as the personal identity.
+[user]
+	email = ryjo1026@gmail.com
+	signingkey = ~/.ssh/id_ed25519_personal.pub
+{{- end }}
