@@ -10,7 +10,8 @@ if ! command -v apm >/dev/null 2>&1; then
   exit 0
 fi
 
-apm install --global
+# --only apm: the agent-skills target can't take MCP config, so a package that declares an MCP server fails the whole install.
+apm install --global --only apm
 
 # prune has no --global; it reads the apm.yml of whatever dir it runs in.
 cd "$HOME/.apm" && apm prune

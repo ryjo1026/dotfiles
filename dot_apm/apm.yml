@@ -16,6 +16,9 @@ dependencies:
     - manaflow-ai/cmux-skills
     - github/gh-stack
     - AminBlg/SimpleEnglish
+    - humanlayer/skills/plugins/show-me/skills/show-me
+    - ayghri/i-have-adhd/skills/i-have-adhd
+    - alwaysmeticulous/skills
   mcp: []
 
 includes: auto
